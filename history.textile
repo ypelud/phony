@@ -1,3 +1,160 @@
+h2. Version 2.15.1
+
+* Improvements for Belgium (#279).
+
+h2. Version 2.15.0
+
+* Trunk code will only return digits on @#format@ (#277).
+
+h2. Version 2.14.15
+
+* Improvements for Myanmar (#275).
+
+h2. Version 2.14.14
+
+* Improvements for Cambodia (#271).
+
+h2. Version 2.14.13
+
+* Improvements for China (#269).
+
+h2. Version 2.14.12
+
+* Improvements for Cambodia (#268).
+
+h2. Version 2.14.11
+
+* Improvements for Zimbabwe (#267).
+
+h2. Version 2.14.10
+
+* Improvements for the French territories (#265).
+
+h2. Version 2.14.9
+
+* Improvements for El Salvador (#264).
+
+h2. Version 2.14.8
+
+* Improvements for Ireland (#263).
+
+h2. Version 2.14.7
+
+* Improvements for Sweden (#262).
+
+h2. Version 2.14.6
+
+* Improvements for Big Sochi and Primorsky Krai (#234).
+
+h2. Version 2.14.5
+
+* Improvements for Finland (#260).
+
+h2. Version 2.14.4
+
+* Maintenance release (#259).
+
+h2. Version 2.14.3
+
+* Improvements for Cambodia (#254).
+
+h2. Version 2.14.2
+
+* Improvements for Brazil (#256).
+
+h2. Version 2.14.1
+
+* Improvements for Japan (#253).
+
+h2. Version 2.14.0
+
+* Major change to formatting NANP numbers (including the US): NDC is now by default wrapped in parentheses, and the local part of the number is separated by dashes.
+
+h2. Version 2.13.0
+
+* Add @trunk@ interpolation to @Phony#format@ option @format@.
+
+h2. Version 2.12.14
+
+* Improvements for Belgium (#251).
+
+h2. Version 2.12.13
+
+* Improvements for Zambia (#248).
+
+h2. Version 2.12.12
+
+* Improvements for Austria (#246).
+
+h2. Version 2.12.11
+
+* Improvements for Côte d'Ivoire (#244).
+
+h2. Version 2.12.10
+
+* Improvements for Nigeria (#243).
+
+h2. Version 2.12.9
+
+* Fixes #242 (and improves) by removing only @(0@ instead of @(0)@.
+
+h2. Version 2.12.8
+
+* Improvements for Italy (#241).
+
+h2. Version 2.12.7
+
+* Improvements for Japan (#239).
+
+h2. Version 2.12.6
+
+* Improvements for Japan (#239).
+
+h2. Version 2.12.5
+
+* Improvements for Romania (#238).
+
+h2. Version 2.12.4
+
+* Improvements for Italy (#237).
+
+h2. Version 2.12.3
+
+* Improvements for Italy, Egypt (#235, #236).
+
+h2. Version 2.12.2
+
+* Fix for NANP (see #232).
+
+h2. Version 2.12.1
+
+* Improvements for NANP (thanks, see #231).
+
+h2. Version 2.12.0
+
+* Add experimental trunk option to @format@.
+  @Phony.format('14152223333', :format => :national, :trunk => false).should eql '415 222 3333'@
+
+h2. Version 2.11.1
+
+* Fix for Thailand (thanks, see #225, #228).
+
+h2. Version 2.11.0
+
+* Fix for national number formatting (thanks, see #227).
+
+h2. Version 2.10.5
+
+* Improvements for Nigeria (thanks, see #226).
+
+h2. Version 2.10.4
+
+* Improvements for Belgium (thanks, see #224).
+
+h2. Version 2.10.3
+
+* Improvements for French Polynesia (thanks, see #223).
+
 h2. Version 2.10.2
 
 * Improvements for Cambodian and Italian numbers (thanks, see #222).

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # All countries, ordered by country code.
 #
 # Definitions are in the format:
@@ -22,6 +23,24 @@
 #
 # Note: The ones that are commented are defined in their special files.
 #
+# @example Switzerland (simplified)
+#   country('41', fixed(2) >> local([3,2,2]))
+#
+# @example Germany. Too big, we use a separate file
+#   Phony.define do
+#     country '49', match(...) >> split([...]) ||
+#                   one_of([...], :max_length => 5) >> split([...])
+#   end
+#
+# @example Denmark
+#   country('45', none >> split([2,2,2,2]))
+#
+# @example Hungary
+#   country('36',
+#           match(/^104|105|107|112/) >> split([3,3]) ||
+#           one_of([1], :max_length => 2) >> split([3,4])
+#   )
+#
 Phony.define do
 
   # Reserved.
@@ -32,9 +51,11 @@ Phony.define do
   #
   country '1',
     # The US has a delimiter between NDC and local number.
-    trunk('1%s', normalize: true) | # http://en.wikipedia.org/wiki/Trunk_prefix
+    trunk('1%s', normalize: true, format: false) | # http://en.wikipedia.org/wiki/Trunk_prefix
     fixed(3) >> split(3,4),
-    :invalid_ndcs => ['911']
+    :invalid_ndcs => /[0-1]\d{2}|[3-9]11/,
+    :parentheses => true,
+    :local_space => :-
 
   # Kazakhstan (Republic of) & Russsian Federation.
   # also Abhasia and South Osetia autonomous regions / recognized by some states as independent countries
@@ -43,10 +64,11 @@ Phony.define do
 
   # Egypt.
   #
-  country '20', one_of('800')    >> split(7..7) | # Egypt
-                one_of('2', '3') >> split(8..8) | # Cairo/Giza, Alexandria
-                fixed(2)         >> split(8..8)
-                # :mobile? => /^1[01246-9]\d+$/, :service? => /^800\d+$/
+  country '20', one_of('800')    >> split(7..7) | # Egypt toll free
+                one_of('3')      >> split(7..7) | # Alexandria
+                one_of('2')      >> split(8..8) | # Cairo/Giza
+                one_of('10', '11', '12') >> split(8..8) | # the 3 mobile operators
+                fixed(2)         >> split(7..7) # all the other 24 provinces
 
   # South Africa.
   #
@@ -75,7 +97,8 @@ Phony.define do
   #
   country '32', trunk('0') |
                 match(/^(70|800|90\d)\d+$/) >> split(3,3)   | # Service
-                match(/^(4[789]\d)\d{6}$/)  >> split(6)     | # Mobile
+                match(/^(46[68])\d{6}$/)    >> split(2,2,2) | # Mobile (Lycamobile, Telenet)
+                match(/^(4[789]\d)\d{6}$/)  >> split(2,2,2) | # Mobile
                 one_of('2','3','4','9')     >> split(3,2,2) | # Short NDCs
                 fixed(2)                    >> split(2,2,2)   # 2-digit NDCs
 
@@ -111,7 +134,7 @@ Phony.define do
   country '40',
           trunk('0') |
           match(/^(112|800|90[036])\d+$/) >> split(3,3) | # Service
-          match(/^(7[1-8])\d+$/)          >> split(3,4) | # Mobile
+          match(/^(7[1-9])\d+$/)          >> split(3,4) | # Mobile
           one_of('21', '31')              >> split(3,4) | # Bucureşti
           fixed(3)                        >> split(3,4)   # 3-digit NDCs
 
@@ -248,7 +271,7 @@ Phony.define do
   #
   country '66',
     trunk('0') |
-    match(/\A(8\d\d)\d+\z/) >> split(3,3) | # mobile
+    match(/\A([89]\d\d)\d+\z/) >> split(3,3) | # mobile
     one_of('2') >> split(3,4) | # Bangkok
     fixed(2)    >> split(3,3)   # Rest
 
@@ -279,7 +302,7 @@ Phony.define do
   country '94', # TODO Sri Lanka (Democratic Socialist Republic of)
     fixed(2) >> split(3,2,2)
 
-  country '95', trunk('0') | fixed(2) >> split(3,2,2) # TODO Myanmar (Union of)
+  #country '95' # Myanmar, see special file.
 
   country '98', #  Iran (Islamic Republic of)
     one_of('21') >> split(4,4) | # Teheran
@@ -310,7 +333,16 @@ Phony.define do
 
   # country '224' # Guinea, see special file
 
-  country '225', none >> split(4,4) # Côte d'Ivoire http://www.wtng.info/wtng-225-ci.html
+  # Côte d'Ivoire
+  # http://www.wtng.info/wtng-225-ci.html
+  # http://www.itu.int/dms_pub/itu-t/oth/02/02/T02020000310001PDFE.pdf
+  # http://en.wikipedia.org/wiki/Telephone_numbers_in_Ivory_Coast
+  #
+  # There is no trunk code for this country and several of the mobile prefixes start with 0
+  country '225',
+    trunk('', :normalize => false) |
+    fixed(2) >> split(2,2,2)
+
   country '226', none >> split(4,4) # Burkina Faso http://www.wtng.info/wtng-226-bf.html
   country '227', none >> split(4,4) # Niger http://www.wtng.info/wtng-227-ne.html
   country '228', none >> split(4,4) # Togolese Republic http://www.wtng.info/wtng-228-tg.html
@@ -324,6 +356,7 @@ Phony.define do
     none >> matched_split(
         /\A[23]\d+\z/ => [4,4], # LIBTELCO, TEMAS
         /\A[4568]\d+\z/ => [4,3], # mobile Lonestar, Libercell, Comium Liberia Inc.
+        /\A77\d+\z/ => [2,3,4], # http://monrovia.usembassy.gov/contact.html
         /\A7\d+\z/ => [4,4], # mobile Cellcom
         /\A9\d+\z/ => [4,4], # premium rate Telelinks International SAL, Interactive Media Corporation
     )
@@ -338,12 +371,13 @@ Phony.define do
 
   # Nigeria
   # Wikipedia says 3 4 split, many local number with no splitting
+  #
+  # mobile telephony number allocation taken from: http://www.ncc.gov.ng/index.php?option=com_content&view=article&id=113&Itemid=102
   country '234',
-    one_of('1', '2', '9')   >> split(3,4) | # Lagos, Ibadan and Abuja
-    match(/^(702\d)\d+$/)   >> split(3,4) | # Mobile
-    match(/^(70[3-9])\d+$/) >> split(3,4) | # Mobile
-    match(/^(8[01]\d)\d+$/) >> split(3,4) | # Mobile
-    fixed(2)                >> split(3,4)   # 2-digit NDC
+    match(/^([7-9]0\d)\d+$/) >> split(3,4) | # Mobile
+    match(/^(81\d)\d+$/)     >> split(3,4) | # Mobile
+    one_of('1', '2', '9')    >> split(3,4) | # Lagos, Ibadan and Abuja
+    fixed(2)                 >> split(3,4)   # 2-digit NDC
 
   country '235', none >> split(4,4) # Chad http://www.wtng.info/wtng-235-td.html
   country '236', none >> split(4,4) # Central African Republic http://www.wtng.info/wtng-236-cf.html
@@ -421,10 +455,10 @@ Phony.define do
   country '259', todo # -
 
   # Zambia
-  # http://en.wikipedia.org/wiki/Telephone_numbers_in_Zambia
+  # http://www.wtng.info/wtng-260-zm.html
   country '260',
-          match(/^(9[567])/)  >> split(7) | # Mobile
-          match(/^(21[1-8])/) >> split(6)   # Geographic
+    match(/^(9(55|66|7[7-9]))/) >> split(6) | # mobile
+    match(/^(21[1-8])/) >> split(6) # fixed
 
   # Madagascar http://www.wtng.info/wtng-261-mg.html
   # http://www.itu.int/oth/T020200007F/en
@@ -442,7 +476,9 @@ Phony.define do
               /\A6\d+\z/ => [3,3,3]   # satellite
           )
 
-  country '262', fixed(3) >> split(3, 3) # Reunion / Mayotte (new) http://www.wtng.info/wtng-262-fr.html
+  country '262', # Reunion / Mayotte (new) http://www.wtng.info/wtng-262-fr.html
+    trunk('0') |
+    fixed(3) >> split(2,2,2)
 
   # country '263' # Zimbabwe, see special file
 
@@ -590,9 +626,10 @@ Phony.define do
   #
   country '358',
           trunk('0') |
+          match(/^([1-3]0)\d+$/)          >> split(3,3,0..6) | # Service/subscriber
           match(/^([6-8]00)\d+$/)         >> split(3,3)   | # Service
-          match(/^(4\d|50)\d+$/)          >> split(3,2,2) | # Mobile
-          one_of('2','3','5','6','8','9') >> split(3,3)   | # Short NDCs
+          match(/^(4\d|50)\d+$/)          >> split(3,2,0..2) | # Mobile
+          one_of('2','3','5','6','8','9') >> split(3,2..4)   | # Short NDCs
           fixed(2)                        >> split(3,3)     # 2-digit NDCs
 
   # Bulgaria
@@ -697,7 +734,7 @@ Phony.define do
           fixed(1) >> split(3,4)
 
    # El Salvador (Republic of)
-  country '503', fixed(4) >> split(4,4)
+  country '503', fixed(4) >> split(4)
 
   # Honduras (Republic of) http://www.wtng.info/wtng-504-hn.html
   # https://www.numberingplans.com/?page=dialling&sub=areacodes
@@ -734,7 +771,8 @@ Phony.define do
 
   # Guadeloupe (French Department of) http://www.wtng.info/wtng-590-fr.html
   # https://www.numberingplans.com/?page=dialling&sub=areacodes
-  country '590', fixed(3) >> split(3,3)
+  country '590', trunk('0') |
+    fixed(3) >> split(2,2,2)
 
   country '591', # Bolivia (Republic of) http://www.itu.int/oth/T020200001A/en
     fixed(1) >> split(3,4)
@@ -752,7 +790,8 @@ Phony.define do
   # country '595' # Paraguay (Republic of), see special file
 
   # Martinique (French Department of) http://www.wtng.info/wtng-596-mq.html, https://www.numberingplans.com
-  country '596', fixed(3) >> split(3, 3)
+  country '596', trunk('0') |
+    fixed(3) >> split(2,2,2)
 
   # Suriname (Republic of) http://www.wtng.info/wtng-597-sr.html, https://www.numberingplans.com
   country '597',

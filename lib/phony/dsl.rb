@@ -1,27 +1,3 @@
-# # Switzerland (simplified):
-# #
-# country('41', fixed(2) >> local([3,2,2]))
-#
-# # Germany. Too big, we use a separate file:
-# #
-# Phony.define do
-#   country '49', match(...) >> split([...]) ||
-#                 one_of([...], :max_length => 5) >> split([...])
-# end
-#
-# # Denmark:
-# #
-# country('45', none >> split([2,2,2,2]))
-#
-# # Hungary:
-# #
-# country('36',
-#         match(/^104|105|107|112/) >> split([3,3]) ||
-#         one_of([1], :max_length => 2) >> split([3,4])
-# )
-#
-# Note: Perhaps the DSL should operate directly on country codes.
-#
 module Phony
 
   # For country definitions.
@@ -42,11 +18,26 @@ module Phony
     dsl
   end
 
+  # Contains a number of DSL methods. Is used e.g. in the countries.rb file.
+  #
+  # Do not use directly, but instead use {Phony.define} to execute a block
+  # in the DSL instance's context.
+  #
+  # @example
+  #   Phony.define { ... }
+  #
   class DSL
 
-    # Start defining a country.
+    # Define a country's rules.
     #
-    # Example:
+    # Use the other DSL methods to define the country's rules.
+    #
+    # @param [String] country_code The country code of the country.
+    # @param [Phony::CountryCodes] definition Rules for this country.
+    #
+    # @return Undefined.
+    #
+    # @example Add a country with country code 27.
     #   country '27', # CC, followed by rules, for example fixed(2) >> ...
     #
     def country country_code, definition, options = {}
@@ -55,12 +46,25 @@ module Phony
     end
     
     # Designates a country code as reserved.
+    # A reserved country will result in an exception when trying to be used.
+    #
+    # @param [String] country_code The country code of the country.
+    #
+    # @return nil
+    #
+    # @example Designate country code 27 as reserved.
+    #   reserved('27')
     #
     def reserved country_code
       # Does nothing, will just fail with an exception.
     end
     
-    # This country still uses a default NDC (and needs to be done, hence the todo).
+    # Define a country to use default rules (and to be done at some point).
+    #
+    # @return Rules for a country.
+    #
+    # @example Define country 27 to use default rules.
+    #   country '27', todo
     #
     def todo
       none >> split(10)
@@ -68,10 +72,19 @@ module Phony
     
     # This country uses a trunk code.
     #
-    # Examples:
-    #  * Hungary uses 06.
-    #  * North America uses 1.
-    #  * Most countries which use a trunk code use 0.
+    # @param [String] code The trunk code.
+    # @param [Hash] options Options hash. Pass :normalize (true/false) to indicate whether it needs to be normalized.
+    #
+    # @return TrunkCode A trunk code handler.
+    #
+    # @example Hungary uses 06.
+    #   country '36', trunk('06', normalize: false) | ...
+    #
+    # @example North America uses 1.
+    #   country '1', trunk('1%s', normalize: true) | ...
+    #
+    # @example Most countries which use a trunk code use 0. E.g. Romania.
+    #   country '40', trunk('0') | ...
     #
     def trunk code, options = {}
       TrunkCode.new code, options
@@ -84,12 +97,12 @@ module Phony
     # uses a zero prefix when formatted
     # with format :national.
     #
-    # Options:
-    #  * length: Length of the fixed length NDC.
-    #  * options: Set :zero to false to not add a zero on format :national.
+    # @param [Fixnum] length The length of the fixed length NDC.
+    # @param [Hash] options An options hash (set zero: false to not add a zero on format :national).
     #
-    # Example:
-    #   # France, uses a fixed NDC of size 1.
+    # @return NationalSplitters::Fixed A fixed length national splitter.
+    #
+    # @example France. Uses a fixed NDC of size 1.
     #   country '33', fixed(1) >> split(2,2,2,2)
     #
     def fixed length, options = {}
@@ -97,13 +110,11 @@ module Phony
       NationalSplitters::Fixed.instance_for length, options
     end
     
-    # This country does not use an NDC. This rule will always match.
+    # Marks the country as not using an NDC. This rule will always match.
     #
-    # Examples:
-    #   * Denmark
-    #   * Norway
-    #   * Iceland
-    #   (and more)
+    # @return NationalSplitters::None A no-ndc national splitter.
+    #
+    # @example Denmark, Norway, Iceland.
     #
     def none
       NationalSplitters::None.instance_for
@@ -112,11 +123,11 @@ module Phony
     # If you have a number of (possibly) variable length NDCs
     # that cannot be well expressed via regexp, use this.
     #
-    # Parameters:
-    #   * ndcs A list of ndcs of variable length.
-    #   * Can contain :max_length => number to denote a maximum NDC length.
+    # @param [Array<String>] ndcs A list of NDCs of variable length. Can contain :max_length => number to denote a maximum NDC length.
     #
-    # Example:
+    # @return NationalSplitters::Variable A variable size national splitter.
+    #
+    # @example With two NDCs
     #   country '51',
     #     # If it's either 103 or 105, then split ...
     #     one_of('103', '105') >> split(3,3)
@@ -134,10 +145,11 @@ module Phony
     # If you have a number of (possibly) variable length NDCs
     # that can be well expressed via regexp, use this.
     #
-    # Parameters:
-    #   * regex A regexp describing the NDCs (First group must contain the NDC, eg. /^(0\d{2})\d+$/) contains all NDCs with 0xx...
+    # @param [Regexp] regex A Regexp describing the NDCs (First group must contain the NDC, eg. /^(0\d{2})\d+$/) contains all NDCs with 0xx...
     #
-    # Example:
+    # @return NationalSplitters::Regex A regexp-based national splitter.
+    #
+    # @example With several NDC matchers.
     #   country '52',
     #     match(/^(0\d{2})\d+$/)   >> split(2,2,2,2) |
     #     match(/^(33|55|81)\d+$/) >> split(2,2,2,2) |
@@ -158,7 +170,11 @@ module Phony
     #
     # Also takes ranges.
     #
-    # Example:
+    # @param [Array<Fixnum>] local The local group sizes to split the local number part into.
+    #
+    # @return LocalSplitters::Fixed A fixed size local splitter.
+    #
+    # @example Splitting in 4 even groups of two digits.
     #   match(/^(0\d{2})\d+$/) >> split(2,2,2,2) # If it matches, split in 4 groups of size 2.
     #
     def split *local
@@ -171,18 +187,18 @@ module Phony
     #
     # Also takes ranges.
     #
-    # Options:
-    #   * fallback A fallback amount of group sizes in case it doesn't match.
+    # @param [Hash] options Can contain option :fallback A fallback amount of group sizes in case it doesn't match.
     #
-    # Example:
-    #   # Norway
+    # @return LocalSplitters::Regex A regexp-based local splitter.
+    #
+    # @example Norway
     #   country '47',
     #     none >> matched_split(/^[1].*$/   => [3],
     #                           /^[489].*$/ => [3,2,3],
     #                           :fallback   => [2,2,2,2])
     #
     def matched_split options = {}
-      Phony::LocalSplitters::Regex.instance_for options
+      LocalSplitters::Regex.instance_for options
     end
     
     # Validators
@@ -190,9 +206,11 @@ module Phony
     
     # Which NDCs are explicitly invalid?
     #
-    # Takes a regexp or a string.
+    # @param [Regexp, String] ndc A regexp or a string of invalid NDCs.
     #
-    # Example:
+    # @return Validators::NDC An NDC validator 
+    #
+    # @example NANP
     #   country '1',
     #     fixed(3, :zero => false) >> split(3,4),
     #     invalid_ndcs('911') # The regexp /911/ would also work.

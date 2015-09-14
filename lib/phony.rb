@@ -41,6 +41,7 @@ require File.expand_path '../phony/countries/libya', __FILE__
 require File.expand_path '../phony/countries/malaysia', __FILE__
 require File.expand_path '../phony/countries/moldova', __FILE__
 require File.expand_path '../phony/countries/montenegro', __FILE__
+require File.expand_path '../phony/countries/myanmar', __FILE__
 require File.expand_path '../phony/countries/namibia', __FILE__
 require File.expand_path '../phony/countries/nepal', __FILE__
 require File.expand_path '../phony/countries/netherlands', __FILE__
@@ -59,13 +60,21 @@ require File.expand_path '../phony/countries/ukraine', __FILE__
 require File.expand_path '../phony/countries/united_kingdom', __FILE__
 require File.expand_path '../phony/countries/uruguay', __FILE__
 require File.expand_path '../phony/countries/zimbabwe', __FILE__
-#
+
 # All other countries.
 #
 require File.expand_path '../phony/countries', __FILE__
 
+# Phony is the main module and is generally used to process
+# E164 phone numbers directly.
+#
 module Phony
 
+  # Raised in case Phony can't normalize a given number.
+  #
+  # @example
+  #   Phony.normalize("Fnork!") # Raises a Phony::NormalizationError.
+  #
   class NormalizationError < StandardError
     def initialize
       super %Q{Phony could not normalize the given number. Is it a phone number?}
@@ -80,22 +89,56 @@ module Phony
 
     # Get the Country for the given CC.
     #
-    # Example:
-    #   us = Phony['1']
-    #   normalized_number = us.normalize number
+    # @param [String] cc A valid country code.
+    #
+    # @return [Country] for the given CC.
+    #
+    # @example Country for the NANP (includes the US)
+    #   nanp = Phony['1']
+    #   normalized_number = nanp.normalize number
     #
     def [] cc
       @codes[cc]
     end
 
-    # Normalizes the given number.
+    # Normalizes the given number into a digits-only String.
     #
     # Useful before inserting the number into a database.
+    #
+    # @param [String] phone_number An E164 number.
+    # @param [Hash] options An options hash (With :cc as the only used key).
+    #
+    # @return [String] A normalized E164 number.
+    #
+    # @raise [Phony::NormalizationError] If phony can't normalize the given number.
+    #
+    # @example Normalize a Swiss number.
+    #   Phony.normalize("+41 (044) 123 45 67") # => "41441234567"
+    #
+    # @example Normalize a phone number assuming it's a NANP number.
+    #   Phony.normalize("301 555 0100", cc: '1') # => "13015550100"
     #
     def normalize phone_number, options = {}
       raise ArgumentError, "Phone number cannot be nil. Use e.g. number && Phony.normalize(number)." unless phone_number
       normalize! phone_number.dup, options
     end
+    # A destructive version of {#normalize}.
+    #
+    # @see #normalize
+    #
+    # @param [String] phone_number An E164 number.
+    # @param [Hash] options An options hash (With :cc as the only used key).
+    #
+    # @return [String] The normalized E164 number.
+    #
+    # @raise [Phony::NormalizationError] If phony can't normalize the given number.
+    #
+    # @example Normalize a Swiss number.
+    #   Phony.normalize!("+41 (044) 123 45 67") # => "41441234567"
+    #
+    # @example Normalize a phone number assuming it's a NANP number.
+    #   Phony.normalize!("301 555 0100", cc: '1') # => "13015550100"
+    #
     def normalize! phone_number, options = {}
       @codes.normalize phone_number, options
     rescue
@@ -104,22 +147,87 @@ module Phony
 
     # Splits the phone number into pieces according to the country codes.
     #
+    # Useful for manually processing the CC, NDC, and local pieces.
+    #
+    # @param [String] phone_number An E164 number.
+    #
+    # @return [Array<String>] The pieces of a phone number.
+    #
+    # @example Split a Swiss number.
+    #   Phony.split("41441234567") # => ["41", "44", "123", "45", "67"]
+    #
+    # @example Split a NANP number.
+    #   Phony.split("13015550100") # => ["1", "301", "555", "0100"]
+    #
     def split phone_number
       raise ArgumentError, "Phone number cannot be nil. Use e.g. number && Phony.split(number)." unless phone_number
       split! phone_number.dup
     end
+    # A destructive version of {#split}.
+    #
+    # @see #split
+    #
+    # @param [String] phone_number An E164 number.
+    #
+    # @return [Array<String>] The pieces of the phone number.
+    #
+    # @example Split a Swiss number.
+    #   Phony.split!("41441234567") # => ["41", "44", "123", "45", "67"]
+    #
+    # @example Split a NANP number.
+    #   Phony.split!("13015550100") # => ["1", "301", "555", "0100"]
+    #
     def split! phone_number
-      parts = @codes.split phone_number
-      parts.delete_at 1
-      parts
+      @codes.split phone_number
     end
 
-    # Formats a E164 number according to local customs.
+    # Formats a normalized E164 number according to a country's formatting scheme.
+    #
+    # Absolutely needs a normalized E164 number.
+    #
+    # @param [String] phone_number A normalized E164 number.
+    # @param [Hash] options See the README for a list of options.
+    #
+    # @return [Array<String>] The pieces of a phone number.
+    #
+    # @example Format a Swiss number.
+    #   Phony.format("41441234567") # => "+41 44 123 45 67"
+    #
+    # @example Format a NANP number.
+    #   Phony.format("13015550100") # => "+1 301 555 0100"
+    #
+    # @example Format a NANP number in local format.
+    #   Phony.format("13015550100", :format => :local) # => "555 0100"
+    #
+    # @example Format a NANP number in a specific format.
+    #   Phony.format("13015550100", :format => '%{cc} (%{trunk}%{ndc}) %{local}') # => "555 0100"
     #
     def format phone_number, options = {}
       raise ArgumentError, "Phone number cannot be nil. Use e.g. number && Phony.format(number)." unless phone_number
       format! phone_number.dup, options
     end
+    # A destructive version of {#format}.
+    #
+    # @see #format
+    #
+    # Formats a normalized E164 number according to a country's formatting scheme.
+    #
+    # Absolutely needs a normalized E164 number.
+    #
+    # @param [String] phone_number A normalized E164 number.
+    # @param [Hash] options See the README for a list of options.
+    #
+    # @return [Array<String>] The pieces of the phone number.
+    #
+    # @example Format a Swiss number.
+    #   Phony.format!("41441234567") # => "+41 44 123 45 67"
+    #
+    # @example Format a NANP number.
+    #   Phony.format!("13015550100") # => "+1 301 555 0100"
+    #
+    # @example Format a NANP number in local format.
+    #   Phony.format!("13015550100", :format => :local) # => "555 0100"
+    #
     def format! phone_number, options = {}
       @codes.format phone_number, options
     end
@@ -145,6 +253,13 @@ module Phony
 
     # Converts any character in the vanity_number to its numeric representation.
     # Does not check if the passed number is a valid vanity_number, simply does replacement.
+    #
+    # @param [String] vanity_number A vanity number.
+    #
+    # @return [String] The de-vanitized phone number.
+    #
+    # @example De-vanitize a number.
+    #   Phony.vanity_to_number("1-800-HELLOTHERE") # => "1-800-4355684373"
     #
     def vanity_to_number vanity_number
       @codes.vanity_to_number vanity_number.dup
