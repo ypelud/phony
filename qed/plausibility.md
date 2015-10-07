@@ -82,6 +82,7 @@ Some of the examples use `plausible? true: [some numbers]`.
     Phony.refute.plausible?('+43 501 1234') # too short
     Phony.refute.plausible?('+43 501 123456') # too long
     Phony.assert.plausible?('+43 800 123456789')
+    Phony.assert.plausible?('+43 512 1234567890')
     Phony.assert.plausible?('+43 3115 3307') # See issue #246 on Github.
 
 Mobile.
@@ -392,6 +393,18 @@ Mobile.
     Phony.refute.plausible?('+372 812 1234')
     Phony.refute.plausible?('+372 822 123')
     Phony.refute.plausible?('+372 822 123456')
+
+#### Finland
+
+    Phony.assert.plausible?('+358 457 123 45')
+    Phony.assert.plausible?('+358 457 123 45 6')
+    Phony.assert.plausible?('+358 457 123 45 67')
+    Phony.assert.plausible?('+358 41 123 45')
+    Phony.assert.plausible?('+358 41 123 45 6')
+    Phony.assert.plausible?('+358 41 123 45 67')
+    Phony.assert.plausible?('+358 50 123 45')
+    Phony.assert.plausible?('+358 50 123 45 6')
+    Phony.assert.plausible?('+358 50 123 45 67')
 
 #### Germany
 
